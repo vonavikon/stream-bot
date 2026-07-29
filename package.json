@@ -1,7 +1,7 @@
 {
   "name": "stream-bot",
   "version": "1.0.0",
-  "description": "Telegram-бот для захвата мыслей и ссылок в markdown-файл с LLM-триагом (тип + домен)",
+  "description": "Telegram-бот для захвата мыслей и ссылок в markdown-файл задач с LLM-триагом (домен + чистая формулировка)",
   "type": "module",
   "main": "dist/index.js",
   "scripts": {

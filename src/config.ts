@@ -34,9 +34,9 @@ export const config = {
     model: "claude-haiku-4-5-2025-10-01",
   },
   wiki: {
-    // WIKI_PATH — корень git-репо заметок (с .git). stream.md живёт по <WIKI_PATH>/wiki/inbox/stream.md
+    // WIKI_PATH — корень git-репо заметок (с .git). Захват пишется в <WIKI_PATH>/wiki/tasks.md (## Входящее)
     path: process.env.WIKI_PATH ?? resolve(__dirname, "..", ".."),
-    streamFile: "wiki/inbox/stream.md",
+    tasksFile: "wiki/tasks.md",
   },
   types: ["task", "idea", "question", "reference", "trash"] as const,
   domains: [

@@ -2,19 +2,14 @@ import { Bot } from "grammy";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { config } from "./config.js";
-import {
-  appendEntry,
-  tagEntry,
-  updateCounters,
-  strikethroughEntry,
-} from "./stream-writer.js";
+import { appendEntry, refineEntry, strikeTrash } from "./stream-writer.js";
 import { classify } from "./classifier.js";
 
 import { gitPull, gitCommitAndPush } from "./git-sync.js";
-import { parseStream, findUntagged, countByType } from "./stream-parser.js";
+import { parseInbox, findUntaggedInbox } from "./stream-parser.js";
 
 const bot = new Bot(config.telegram.botToken);
-const streamPath = resolve(config.wiki.path, config.wiki.streamFile);
+const tasksPath = resolve(config.wiki.path, config.wiki.tasksFile);
 
 const DOMAIN_LABELS: Record<string, string> = {
   ai: "AI",
@@ -35,13 +30,10 @@ bot.command("start", (ctx) => {
 bot.command("stream", (ctx) => {
   try {
     gitPull(config.wiki.path);
-    const content = readFileSync(streamPath, "utf-8");
-    const parsed = parseStream(content);
-    const untagged = findUntagged(parsed);
-    const counts = countByType(parsed);
-    ctx.reply(
-      `Необработанных: ${untagged.length} | Идей: ${counts.idea} | Вопросов: ${counts.question} | Задач: ${counts.task}`
-    );
+    const content = readFileSync(tasksPath, "utf-8");
+    const entries = parseInbox(content);
+    const untagged = entries.filter((e) => e.tags.length === 0).length;
+    ctx.reply(`Входящее: ${entries.length} (без тега: ${untagged})`);
   } catch (e) {
     ctx.reply(`Ошибка: ${(e as Error).message}`);
   }
@@ -69,31 +61,24 @@ bot.on("message:text", async (ctx) => {
   if (text.startsWith("/")) return;
 
   try {
-    // Save raw entry
+    // Сохранить сырую запись чекбоксом
     gitPull(config.wiki.path);
-    appendEntry(streamPath, text);
+    appendEntry(tasksPath, text);
     gitCommitAndPush(config.wiki.path, `stream: ${text.slice(0, 50)}`);
     await ctx.react("👌");
 
-    // Background triage
-    const today = new Date().toISOString().slice(0, 10);
+    // Фоновый триаг
     const result = await classify(text);
-
-    const tags = [`#${result.type}`, `#${result.domain}`];
-
     gitPull(config.wiki.path);
 
     if (result.type === "trash") {
-      strikethroughEntry(streamPath, today, text, "trash");
+      strikeTrash(tasksPath, text);
     } else {
-      tagEntry(streamPath, today, text, tags);
+      const body =
+        result.type === "task" && result.task_text ? result.task_text : text;
+      refineEntry(tasksPath, text, body, result.domain);
     }
 
-    if (result.type === "task" && result.task_text) {
-      // Task stays in stream.md — user creates it in Kanban manually
-    }
-
-    updateCounters(streamPath);
     gitCommitAndPush(config.wiki.path, `triage: ${result.type}`);
 
     const domainLabel = DOMAIN_LABELS[result.domain] ?? result.domain;
@@ -104,11 +89,7 @@ bot.on("message:text", async (ctx) => {
   }
 });
 
-function formatReply(
-  type: string,
-  domain: string,
-  text: string
-): string {
+function formatReply(type: string, domain: string, text: string): string {
   switch (type) {
     case "task":
       return `✅ Задача: ${text} — добавлена`;
@@ -126,35 +107,22 @@ function formatReply(
 }
 
 async function triageAll(): Promise<void> {
-  const content = readFileSync(streamPath, "utf-8");
-  const parsed = parseStream(content);
-  const untagged = findUntagged(parsed);
+  const content = readFileSync(tasksPath, "utf-8");
+  const untagged = findUntaggedInbox(content);
 
   for (const entry of untagged) {
     const result = await classify(entry.text);
-    const tags = [`#${result.type}`, `#${result.domain}`];
-
-    const section = parsed.sections.find((s) =>
-      s.entries.some((e) => e.raw === entry.raw)
-    );
-    if (!section) continue;
 
     if (result.type === "trash") {
-      strikethroughEntry(streamPath, section.date, entry.text, "trash");
+      strikeTrash(tasksPath, entry.text);
     } else {
-      tagEntry(streamPath, section.date, entry.text, tags);
-    }
-
-    if (result.type === "task" && result.task_text) {
-      // Task stays in stream.md — user creates it in Kanban manually
+      const body =
+        result.type === "task" && result.task_text ? result.task_text : entry.text;
+      refineEntry(tasksPath, entry.text, body, result.domain);
     }
   }
 
-  updateCounters(streamPath);
-  gitCommitAndPush(
-    config.wiki.path,
-    `triage: batch ${untagged.length} entries`
-  );
+  gitCommitAndPush(config.wiki.path, `triage: batch ${untagged.length} entries`);
 }
 
 console.log("Stream bot started");

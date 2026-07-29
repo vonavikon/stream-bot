@@ -1,137 +1,93 @@
 import { readFileSync, writeFileSync } from "node:fs";
-import {
-  parseStream,
-  countByType,
-  findUntagged,
-  type ParsedStream,
-} from "./stream-parser.js";
 
-const COUNTER_RE = /^_Необработанных:.*_$/m;
-
-function today(): string {
-  return new Date().toISOString().slice(0, 10);
-}
+const INBOX_HEADER = "## Входящее";
+const INBOX_LINE_RE = /^-\s+\[[ xX]\]\s+(\d{2}:\d{2})\s+—\s+(.+)$/;
 
 function nowTime(): string {
   return new Date().toISOString().slice(11, 16);
 }
 
+/** Границы секции ## Входящее: [первая строка после заголовка, первая строка следующей секции). */
+function inboxRange(lines: string[]): [number, number] {
+  const start = lines.findIndex((l) => l.trim() === INBOX_HEADER);
+  if (start === -1) return [-1, -1];
+  let end = lines.length;
+  for (let i = start + 1; i < lines.length; i++) {
+    if (/^##\s/.test(lines[i].trim())) {
+      end = i;
+      break;
+    }
+  }
+  return [start + 1, end];
+}
+
+/** Добавляет запись чекбоксом `- [ ] HH:MM — текст` в секцию Входящее, новой сверху. */
 export function appendEntry(filePath: string, text: string): void {
   const content = readFileSync(filePath, "utf-8");
-  const date = today();
   const time = nowTime();
-  const entryLine = `${time} — ${text}`;
-  const dateHeader = `## ${date}`;
-
+  const entryLine = `- [ ] ${time} — ${text}`;
   const lines = content.split("\n");
 
-  const dateIdx = lines.findIndex((l) => l.trim() === dateHeader);
-
-  if (dateIdx === -1) {
-    const counterIdx = lines.findIndex((l) => COUNTER_RE.test(l));
-    const insertAt = counterIdx !== -1 ? counterIdx + 1 : 2;
-    const newSection = ["", dateHeader, entryLine];
-    lines.splice(insertAt, 0, ...newSection);
+  const idx = lines.findIndex((l) => l.trim() === INBOX_HEADER);
+  if (idx === -1) {
+    // Секции ещё нет — создаём над «Открыта» (или над первым ## заголовком).
+    const openIdx = lines.findIndex((l) => /^## Открыта\s*$/.test(l));
+    const firstHeading = lines.findIndex((l) => /^##\s/.test(l));
+    const insertAt =
+      openIdx !== -1 ? openIdx : firstHeading !== -1 ? firstHeading : lines.length;
+    lines.splice(insertAt, 0, INBOX_HEADER, "", entryLine, "");
   } else {
-    let insertAt = dateIdx + 1;
-    while (
-      insertAt < lines.length &&
-      lines[insertAt].match(/^\d{2}:\d{2}\s*—/)
-    ) {
-      insertAt++;
-    }
+    let insertAt = idx + 1;
+    if (lines[insertAt] !== undefined && lines[insertAt].trim() === "") insertAt++;
     lines.splice(insertAt, 0, entryLine);
   }
 
   writeFileSync(filePath, lines.join("\n"), "utf-8");
 }
 
-export function tagEntry(
+/** Переписывает тело первой подходящей записи: newBody + тег домена `#domain`. */
+export function refineEntry(
   filePath: string,
-  date: string,
-  entryText: string,
-  tags: string[]
+  oldText: string,
+  newBody: string,
+  domain: string
 ): void {
   const content = readFileSync(filePath, "utf-8");
   const lines = content.split("\n");
-  const dateHeader = `## ${date}`;
-  let inSection = false;
+  const [start, end] = inboxRange(lines);
+  if (start === -1) return;
 
-  const tagSuffix = tags.map((t) => "`" + t + "`").join(" ");
+  const tagSuffix = " `" + "#" + domain + "`";
 
-  for (let i = 0; i < lines.length; i++) {
-    if (lines[i].trim() === dateHeader) {
-      inSection = true;
-      continue;
-    }
-    if (inSection && lines[i].match(/^## /)) break;
-    if (inSection) {
-      const trimmed = lines[i].trim();
-      if (
-        trimmed.includes(entryText) &&
-        trimmed.match(/^\d{2}:\d{2}\s*—/) &&
-        !trimmed.includes("`#")
-      ) {
-        lines[i] = trimmed + " " + tagSuffix;
-        break;
-      }
+  for (let i = start; i < end; i++) {
+    const m = lines[i].match(INBOX_LINE_RE);
+    if (!m) continue;
+    if (m[2].includes("`#")) continue; // уже размечена
+    if (m[2].includes(oldText)) {
+      lines[i] = `- [ ] ${m[1]} — ${newBody}${tagSuffix}`;
+      break;
     }
   }
 
   writeFileSync(filePath, lines.join("\n"), "utf-8");
 }
 
-export function strikethroughEntry(
-  filePath: string,
-  date: string,
-  entryText: string,
-  target: string
-): void {
+/** Зачёркивает запись как trash: `- [ ] ~~HH:MM — текст~~`. */
+export function strikeTrash(filePath: string, oldText: string): void {
   const content = readFileSync(filePath, "utf-8");
   const lines = content.split("\n");
-  const dateStr = today();
+  const [start, end] = inboxRange(lines);
+  if (start === -1) return;
 
-  const dateHeader = `## ${date}`;
-  let inSection = false;
-  const newLines: string[] = [];
-  let removed = false;
-
-  for (const line of lines) {
-    if (line.trim() === dateHeader) {
-      inSection = true;
-      newLines.push(line);
-      continue;
+  for (let i = start; i < end; i++) {
+    const m = lines[i].match(INBOX_LINE_RE);
+    if (!m) continue;
+    if (m[2].includes("`#")) continue;
+    if (m[2].includes(oldText)) {
+      lines[i] = `- [ ] ~~${m[1]} — ${oldText}~~`;
+      break;
     }
-    if (inSection && line.match(/^## /)) inSection = false;
-
-    if (inSection && !removed && line.trim().includes(entryText)) {
-      const timeMatch = line.trim().match(/^(\d{2}:\d{2})/);
-      const time = timeMatch ? timeMatch[1] : "00:00";
-      const strickenLine = `~~${time} — ${entryText}~~ → ${target} (${dateStr})`;
-      removed = true;
-
-      const processedIdx = newLines.findIndex(
-        (l) => l.trim() === "## Обработано"
-      );
-      if (processedIdx !== -1) {
-        newLines.splice(processedIdx + 1, 0, strickenLine);
-      }
-      continue;
-    }
-    newLines.push(line);
   }
 
-  writeFileSync(filePath, newLines.join("\n"), "utf-8");
-}
-
-export function updateCounters(filePath: string): void {
-  const content = readFileSync(filePath, "utf-8");
-  const parsed = parseStream(content);
-  const untagged = findUntagged(parsed).length;
-  const typeCounts = countByType(parsed);
-
-  const counterLine = `_Необработанных: ${untagged} · Задач: ${typeCounts.task} · Идей: ${typeCounts.idea} · Вопросов: ${typeCounts.question}_`;
-
-  const newContent = content.replace(COUNTER_RE, counterLine);
-  writeFileSync(filePath, newContent, "utf-8");
+  writeFileSync(filePath, lines.join("\n"), "utf-8");
 }
