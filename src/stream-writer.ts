@@ -1,10 +1,12 @@
 import { readFileSync, writeFileSync } from "node:fs";
 
 const INBOX_HEADER = "## Входящее";
-const INBOX_LINE_RE = /^-\s+\[[ xX]\]\s+(\d{2}:\d{2})\s+—\s+(.+)$/;
+const INBOX_LINE_RE = /^-\s+\[[ xX]\]\s+((?:\d{4}-\d{2}-\d{2}\s+)?\d{2}:\d{2})\s+—\s+(.+)$/;
 
-function nowTime(): string {
-  return new Date().toISOString().slice(11, 16);
+/** Штамп МСК (UTC+3): YYYY-MM-DD HH:MM. */
+function nowStamp(): string {
+  const msk = new Date(Date.now() + 3 * 3600_000);
+  return msk.toISOString().slice(0, 16).replace("T", " ");
 }
 
 /** Границы секции ## Входящее: [первая строка после заголовка, первая строка следующей секции). */
@@ -21,11 +23,11 @@ function inboxRange(lines: string[]): [number, number] {
   return [start + 1, end];
 }
 
-/** Добавляет запись чекбоксом `- [ ] HH:MM — текст` в секцию Входящее, новой сверху. */
+/** Добавляет запись чекбоксом `- [ ] YYYY-MM-DD HH:MM — текст` в секцию Входящее, новой сверху. */
 export function appendEntry(filePath: string, text: string): void {
   const content = readFileSync(filePath, "utf-8");
-  const time = nowTime();
-  const entryLine = `- [ ] ${time} — ${text}`;
+  const stamp = nowStamp();
+  const entryLine = `- [ ] ${stamp} — ${text}`;
   const lines = content.split("\n");
 
   const idx = lines.findIndex((l) => l.trim() === INBOX_HEADER);

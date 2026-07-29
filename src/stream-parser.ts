@@ -7,7 +7,7 @@ export interface InboxEntry {
 
 export const INBOX_HEADER = "## Входящее";
 
-const INBOX_LINE_RE = /^-\s+\[[ xX]\]\s+(\d{2}:\d{2})\s+—\s+(.+)$/;
+const INBOX_LINE_RE = /^-\s+\[[ xX]\]\s+((?:\d{4}-\d{2}-\d{2}\s+)?\d{2}:\d{2})\s+—\s+(.+)$/;
 const TAG_RE = /`(#\w+)`/g;
 
 function extractTags(line: string): string[] {
