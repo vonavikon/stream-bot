@@ -9,7 +9,7 @@ import { gitPull, gitCommitAndPush } from "./git-sync.js";
 import { parseInbox, findUntaggedInbox } from "./stream-parser.js";
 
 const bot = new Bot(config.telegram.botToken);
-const tasksPath = resolve(config.wiki.path, config.wiki.tasksFile);
+const inboxPath = resolve(config.wiki.path, config.wiki.inboxFile);
 
 const DOMAIN_LABELS: Record<string, string> = {
   ai: "AI",
@@ -30,7 +30,7 @@ bot.command("start", (ctx) => {
 bot.command("stream", (ctx) => {
   try {
     gitPull(config.wiki.path);
-    const content = readFileSync(tasksPath, "utf-8");
+    const content = readFileSync(inboxPath, "utf-8");
     const entries = parseInbox(content);
     const untagged = entries.filter((e) => e.tags.length === 0).length;
     ctx.reply(`Входящее: ${entries.length} (без тега: ${untagged})`);
@@ -63,7 +63,7 @@ bot.on("message:text", async (ctx) => {
   try {
     // Сохранить сырую запись чекбоксом
     gitPull(config.wiki.path);
-    appendEntry(tasksPath, text);
+    appendEntry(inboxPath, text);
     gitCommitAndPush(config.wiki.path, `stream: ${text.slice(0, 50)}`);
     await ctx.react("👌");
 
@@ -72,11 +72,11 @@ bot.on("message:text", async (ctx) => {
     gitPull(config.wiki.path);
 
     if (result.type === "trash") {
-      strikeTrash(tasksPath, text);
+      strikeTrash(inboxPath, text);
     } else {
       const body =
         result.type === "task" && result.task_text ? result.task_text : text;
-      refineEntry(tasksPath, text, body, result.domain);
+      refineEntry(inboxPath, text, body, result.domain);
     }
 
     gitCommitAndPush(config.wiki.path, `triage: ${result.type}`);
@@ -107,18 +107,18 @@ function formatReply(type: string, domain: string, text: string): string {
 }
 
 async function triageAll(): Promise<void> {
-  const content = readFileSync(tasksPath, "utf-8");
+  const content = readFileSync(inboxPath, "utf-8");
   const untagged = findUntaggedInbox(content);
 
   for (const entry of untagged) {
     const result = await classify(entry.text);
 
     if (result.type === "trash") {
-      strikeTrash(tasksPath, entry.text);
+      strikeTrash(inboxPath, entry.text);
     } else {
       const body =
         result.type === "task" && result.task_text ? result.task_text : entry.text;
-      refineEntry(tasksPath, entry.text, body, result.domain);
+      refineEntry(inboxPath, entry.text, body, result.domain);
     }
   }
 

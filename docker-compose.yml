@@ -6,7 +6,7 @@ services:
     env_file: .env
     volumes:
       # Монтируется КОРЕНЬ git-репо заметок (там, где .git).
-      # Бот пишет в wiki/inbox/stream.md внутри него и пушит обратно.
+      # Бот пишет в wiki/stream.md внутри него и пушит обратно.
       - ./notes:/app/wiki
     environment:
       - WIKI_PATH=/app/wiki

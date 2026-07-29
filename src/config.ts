@@ -34,9 +34,10 @@ export const config = {
     model: "claude-haiku-4-5-2025-10-01",
   },
   wiki: {
-    // WIKI_PATH — корень git-репо заметок (с .git). Захват пишется в <WIKI_PATH>/wiki/tasks.md (## Входящее)
+    // WIKI_PATH — корень git-репо заметок (с .git). Захват пишется в <WIKI_PATH>/wiki/inbox/stream.md (## Входящее).
+    // tasks.md бот не трогает — это пользовательская зона (через Obsidian Fit), иначе два писателя рождают _fit-конфликты.
     path: process.env.WIKI_PATH ?? resolve(__dirname, "..", ".."),
-    tasksFile: "wiki/tasks.md",
+    inboxFile: "wiki/stream.md",
   },
   types: ["task", "idea", "question", "reference", "trash"] as const,
   domains: [
