@@ -8,5 +8,9 @@ services:
       # Монтируется КОРЕНЬ git-репо заметок (там, где .git).
       # Бот пишет в wiki/stream.md внутри него и пушит обратно.
       - ./notes:/app/wiki
+      # Deploy-ключ vault-репо + known_hosts для git изнутри контейнера
+      # (GIT_SSH_COMMAND ниже; на хосте вместо этого действует core.sshCommand).
+      - /root/vault-deploy:/keys:ro
     environment:
       - WIKI_PATH=/app/wiki
+      - GIT_SSH_COMMAND=ssh -i /keys/id_ed25519_vault -o IdentitiesOnly=yes -o UserKnownHostsFile=/keys/known_hosts -o StrictHostKeyChecking=yes
