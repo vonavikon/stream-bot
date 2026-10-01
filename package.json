@@ -18,8 +18,7 @@
     "obsidian",
     "markdown",
     "notes",
-    "anthropic",
-    "claude",
+    "bothub",
     "capture"
   ],
   "engines": {
@@ -33,8 +32,7 @@
     "url": "git+https://github.com/vonavikon/stream-bot.git"
   },
   "dependencies": {
-    "grammy": "^1.35.0",
-    "@anthropic-ai/sdk": "^0.52.0"
+    "grammy": "^1.35.0"
   },
   "devDependencies": {
     "typescript": "^5.8.0",

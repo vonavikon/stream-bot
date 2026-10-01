@@ -9,6 +9,7 @@ RUN npm ci
 
 COPY tsconfig.json ./
 COPY src/ ./src/
+COPY taxonomy.md ./
 RUN npx tsc
 
 RUN npm prune --omit=dev

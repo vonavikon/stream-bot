@@ -28,10 +28,12 @@ export const config = {
     botToken: required("TELEGRAM_BOT_TOKEN"),
     chatId: required("TELEGRAM_CHAT_ID"),
   },
-  anthropic: {
-    apiKey: required("ANTHROPIC_API_KEY"),
-    baseUrl: process.env.ANTHROPIC_BASE_URL,
-    model: "claude-haiku-4-5-2025-10-01",
+  llm: {
+    // OpenAI-совместимый шлюз. По умолчанию bothub (https://openai.bothub.chat/v1),
+    // любой другой шлюз — заменой BOTHUB_BASE_URL. Для reasoning-моделей добавлять reasoning_effort: "none".
+    apiKey: required("BOTHUB_API_KEY"),
+    baseUrl: process.env.BOTHUB_BASE_URL ?? "https://openai.bothub.chat/v1",
+    model: process.env.MODEL ?? "claude-haiku-4.5",
   },
   wiki: {
     // WIKI_PATH — корень git-репо заметок (с .git). Захват пишется в <WIKI_PATH>/wiki/inbox/stream.md (## Входящее).
@@ -39,22 +41,13 @@ export const config = {
     path: process.env.WIKI_PATH ?? resolve(__dirname, "..", ".."),
     inboxFile: "wiki/stream.md",
   },
+  // Таксономия (домены + проекты/темы) — в taxonomy.md рядом с кодом.
+  // Источник истины для категорий классификатора, подмешивается в промпт.
+  taxonomyPath: process.env.TAXONOMY_PATH ?? resolve(__dirname, "..", "taxonomy.md"),
   types: ["task", "idea", "question", "reference", "trash"] as const,
-  domains: [
-    "ai",
-    "career",
-    "dev",
-    "infra",
-    "product",
-    "pm",
-    "personal",
-    "naumen",
-    "learning",
-  ] as const,
 } as const;
 
 export type EntryType = (typeof config.types)[number];
-export type EntryDomain = (typeof config.domains)[number];
 
 function required(key: string): string {
   const value = process.env[key];

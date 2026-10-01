@@ -24,10 +24,15 @@ function inboxRange(lines: string[]): [number, number] {
 }
 
 /** Добавляет запись чекбоксом `- [ ] YYYY-MM-DD HH:MM — текст` в секцию Входящее, новой сверху. */
-export function appendEntry(filePath: string, text: string): void {
+export function appendEntry(
+  filePath: string,
+  text: string,
+  opts?: { needsClarify?: boolean }
+): void {
   const content = readFileSync(filePath, "utf-8");
   const stamp = nowStamp();
-  const entryLine = `- [ ] ${stamp} — ${text}`;
+  const suffix = opts?.needsClarify ? " ❓" : "";
+  const entryLine = `- [ ] ${stamp} — ${text}${suffix}`;
   const lines = content.split("\n");
 
   const idx = lines.findIndex((l) => l.trim() === INBOX_HEADER);
@@ -47,19 +52,22 @@ export function appendEntry(filePath: string, text: string): void {
   writeFileSync(filePath, lines.join("\n"), "utf-8");
 }
 
-/** Переписывает тело первой подходящей записи: newBody + тег домена `#domain`. */
+/** Переписывает тело первой подходящей записи: newBody + тег домена и (если есть) проекта. */
 export function refineEntry(
   filePath: string,
   oldText: string,
   newBody: string,
-  domain: string
+  domain: string,
+  project?: string | null
 ): void {
   const content = readFileSync(filePath, "utf-8");
   const lines = content.split("\n");
   const [start, end] = inboxRange(lines);
   if (start === -1) return;
 
-  const tagSuffix = " `" + "#" + domain + "`";
+  const tags = [`\`#${domain}\``];
+  if (project) tags.push(`\`#${project}\``);
+  const tagSuffix = " " + tags.join(" ");
 
   for (let i = start; i < end; i++) {
     const m = lines[i].match(INBOX_LINE_RE);

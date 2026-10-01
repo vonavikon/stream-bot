@@ -1,14 +1,16 @@
 export interface InboxEntry {
   time: string;
-  text: string; // текст без тегов
-  tags: string[]; // доменные теги вида "#ai"
+  text: string; // текст без тегов и без маркера ❓
+  tags: string[]; // теги вида "#ai", "#stream-bot"
+  needsClarify: boolean;
   raw: string;
 }
 
 export const INBOX_HEADER = "## Входящее";
 
 const INBOX_LINE_RE = /^-\s+\[[ xX]\]\s+((?:\d{4}-\d{2}-\d{2}\s+)?\d{2}:\d{2})\s+—\s+(.+)$/;
-const TAG_RE = /`(#\w+)`/g;
+const TAG_RE = /`(#[\w-]+)`/g;
+const CLARIFY_RE = /❓/;
 
 function extractTags(line: string): string[] {
   const tags: string[] = [];
@@ -31,13 +33,22 @@ export function parseInbox(content: string): InboxEntry[] {
     const m = trimmed.match(INBOX_LINE_RE);
     if (!m) continue;
     const tags = extractTags(trimmed);
-    const textWithoutTags = m[2].replace(/`#\w+`/g, "").trim();
-    entries.push({ time: m[1], text: textWithoutTags, tags, raw: trimmed });
+    const needsClarify = CLARIFY_RE.test(m[2]);
+    const textWithoutTags = m[2]
+      .replace(/`#[\w-]+`/g, "")
+      .replace(/❓/g, "")
+      .trim();
+    entries.push({ time: m[1], text: textWithoutTags, tags, needsClarify, raw: trimmed });
   }
   return entries;
 }
 
-/** Записи без доменного тега — кандидаты на триаг. */
+/** Записи без тега и без маркера уточнения — кандидаты на триаг. */
 export function findUntaggedInbox(content: string): InboxEntry[] {
-  return parseInbox(content).filter((e) => e.tags.length === 0);
+  return parseInbox(content).filter((e) => e.tags.length === 0 && !e.needsClarify);
+}
+
+/** Записи, ожидающие уточнения (маркер ❓). */
+export function findNeedsClarify(content: string): InboxEntry[] {
+  return parseInbox(content).filter((e) => e.needsClarify);
 }

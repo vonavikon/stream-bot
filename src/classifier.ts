@@ -1,32 +1,66 @@
-import Anthropic from "@anthropic-ai/sdk";
 import { config } from "./config.js";
-import { buildClassifierPrompt } from "./prompt.js";
+import { buildClassifierPrompt, buildClarifyPrompt } from "./prompt.js";
+import { loadTaxonomy } from "./taxonomy.js";
 
 export interface Classification {
   type: string;
   domain: string;
+  project: string | null;
   task_text: string | null;
 }
 
-const client = new Anthropic({
-  apiKey: config.anthropic.apiKey,
-  baseURL: config.anthropic.baseUrl,
-});
+interface OpenAIResponse {
+  choices?: Array<{ message?: { content?: string } }>;
+}
 
-export async function classify(text: string): Promise<Classification> {
-  const response = await client.messages.create({
-    model: config.anthropic.model,
-    max_tokens: 200,
-    messages: [{ role: "user", content: buildClassifierPrompt(text) }],
+async function completeJson(
+  messages: Array<{ role: string; content: string }>,
+  maxTokens = 300
+): Promise<any> {
+  const response = await fetch(`${config.llm.baseUrl}/chat/completions`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${config.llm.apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: config.llm.model,
+      max_tokens: maxTokens,
+      temperature: 0,
+      messages,
+    }),
   });
 
-  const textBlock = response.content.find((b) => b.type === "text");
-  if (!textBlock || textBlock.type !== "text") {
-    throw new Error("No text in classification response");
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(
+      `LLM request failed: ${response.status} ${body.slice(0, 200)}`
+    );
   }
 
-  let json = textBlock.text.trim();
+  const data = (await response.json()) as OpenAIResponse;
+  const content = data.choices?.[0]?.message?.content;
+  if (!content) {
+    throw new Error("No text in LLM response");
+  }
+
+  let json = content.trim();
   json = json.replace(/^```json?\n?/, "").replace(/\n?```$/, "");
 
-  return JSON.parse(json) as Classification;
+  return JSON.parse(json);
+}
+
+export async function classify(text: string): Promise<Classification> {
+  const taxonomy = loadTaxonomy();
+  return (await completeJson([
+    { role: "user", content: buildClassifierPrompt(text, taxonomy) },
+  ])) as Classification;
+}
+
+export async function generateClarifyQuestion(text: string): Promise<string> {
+  const result = (await completeJson(
+    [{ role: "user", content: buildClarifyPrompt(text) }],
+    100
+  )) as { question: string };
+  return result.question;
 }
