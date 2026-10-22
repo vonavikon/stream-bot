@@ -2,6 +2,8 @@
 
 [![GitHub](https://img.shields.io/badge/GitHub-vonavikon%2Fstream--bot-181717?logo=github)](https://github.com/vonavikon/stream-bot)
 
+**RU** · [EN](README.en.md) · [中文](README.zh.md) · [Español](README.es.md) · [Français](README.fr.md)
+
 Telegram-бот для захвата мыслей, ссылок и вопросов на ходу. Каждая запись ложится чекбоксом в буфер захвата (`wiki/stream.md`) и автоматически размечается доменом через языковую модель. Замена «отправить себе в Избранное», но с последующей ручной проверкой.
 
 ## Что делает
