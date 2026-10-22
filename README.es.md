@@ -27,7 +27,7 @@ La idea es separar la captura del procesamiento. Sobre la marcha vuelcas todo en
 | Comando | Acción |
 |---------|--------|
 | `/start` | saludo |
-| `/stream` | Entrante: total y cuántas sin etiqueta |
+| `/stream` | `Входящее`: total y cuántas sin etiqueta |
 | `/triage` | etiquetado por lotes de todas las entradas sin etiqueta |
 | (cualquier texto) | guardar la entrada, reacción 👌, triaje en segundo plano, respuesta con el tipo detectado |
 
@@ -91,7 +91,7 @@ Hoy el bot acepta solo texto. Las líneas de desarrollo pasan por un gateway LLM
 1. **Entrada por voz (STT).** `voice` → transcripción → la ruta de clasificación habitual. La mitad de las entradas en producción son apuntes cortos tomados sobre la marcha; la voz encaja mejor con el escenario de "manos ocupadas".
 2. **Fotos y capturas de pantalla (vision).** `photo` → OCR + descripción → entrada. Hoy las fotos se descartan en silencio.
 3. **Enriquecimiento de enlaces.** URL en la entrada → cargar la página → resumen breve → entrada con contexto. Cierra el caso de "después no recuerdo para qué lo guardé".
-4. **Deduplicación (embeddings).** Con cada entrada nueva: embedding, búsqueda de similares en `stream.md` y el archivo. Duplicado cercano → marca `trash` o enlace.
+4. **Deduplicación (embeddings).** Con cada entrada nueva: embedding, búsqueda de similares en `stream.md` y en el archivo histórico. Duplicado cercano → marca `trash` o enlace.
 
 ## Licencia
 

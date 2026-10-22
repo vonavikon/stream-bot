@@ -27,7 +27,7 @@ The point is to separate capture from processing. On the go you dump everything 
 | Command | Action |
 |---------|--------|
 | `/start` | greeting |
-| `/stream` | Inbox: total count and how many untagged |
+| `/stream` | `Входящее`: total count and how many untagged |
 | `/triage` | batch-tagging of all untagged entries |
 | (any text) | save the entry, 👌 reaction, background triage, reply with the detected type |
 

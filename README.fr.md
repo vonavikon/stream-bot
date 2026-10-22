@@ -27,7 +27,7 @@ L'intérêt : séparer la capture du traitement. En déplacement, vous videz tou
 | Commande | Action |
 |---------|--------|
 | `/start` | salutation |
-| `/stream` | Entrée : total et nombre sans étiquette |
+| `/stream` | `Входящее` : total et nombre sans étiquette |
 | `/triage` | étiquetage par lot de toutes les notes sans étiquette |
 | (n'importe quel texte) | enregistrer la note, réaction 👌, triage en arrière-plan, réponse avec le type détecté |
 
