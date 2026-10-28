@@ -1,6 +1,7 @@
 # stream-bot
 
 [![GitHub](https://img.shields.io/badge/GitHub-vonavikon%2Fstream--bot-181717?logo=github)](https://github.com/vonavikon/stream-bot)
+[![VirusTotal](https://img.shields.io/badge/VirusTotal-0%2F75_clean-brightgreen)](https://www.virustotal.com/gui/file/c47eec3346a3872030fa044f3bdbe7402ffc21ca7079e865a8332d260341db5a)
 
 **RU** · [EN](README.en.md) · [中文](README.zh.md) · [Español](README.es.md) · [Français](README.fr.md)
 
