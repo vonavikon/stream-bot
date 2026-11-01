@@ -3,13 +3,13 @@ import { readFileSync, writeFileSync } from "node:fs";
 const INBOX_HEADER = "## Входящее";
 const INBOX_LINE_RE = /^-\s+\[[ xX]\]\s+((?:\d{4}-\d{2}-\d{2}\s+)?\d{2}:\d{2})\s+—\s+(.+)$/;
 
-/** Штамп МСК (UTC+3): YYYY-MM-DD HH:MM. */
+/** Moscow time (UTC+3) stamp: YYYY-MM-DD HH:MM. */
 function nowStamp(): string {
   const msk = new Date(Date.now() + 3 * 3600_000);
   return msk.toISOString().slice(0, 16).replace("T", " ");
 }
 
-/** Границы секции ## Входящее: [первая строка после заголовка, первая строка следующей секции). */
+/** Bounds of the ## Входящее section: [first line after the header, first line of the next section). */
 function inboxRange(lines: string[]): [number, number] {
   const start = lines.findIndex((l) => l.trim() === INBOX_HEADER);
   if (start === -1) return [-1, -1];
@@ -23,7 +23,7 @@ function inboxRange(lines: string[]): [number, number] {
   return [start + 1, end];
 }
 
-/** Добавляет запись чекбоксом `- [ ] YYYY-MM-DD HH:MM — текст` в секцию Входящее, новой сверху. */
+/** Appends an entry as a checkbox `- [ ] YYYY-MM-DD HH:MM — text` to the Входящее (inbox) section, newest on top. */
 export function appendEntry(
   filePath: string,
   text: string,
@@ -37,7 +37,7 @@ export function appendEntry(
 
   const idx = lines.findIndex((l) => l.trim() === INBOX_HEADER);
   if (idx === -1) {
-    // Секции ещё нет — создаём над «Открыта» (или над первым ## заголовком).
+    // The section does not exist yet: create it above "Открыта" (or above the first ## heading).
     const openIdx = lines.findIndex((l) => /^## Открыта\s*$/.test(l));
     const firstHeading = lines.findIndex((l) => /^##\s/.test(l));
     const insertAt =
@@ -52,7 +52,7 @@ export function appendEntry(
   writeFileSync(filePath, lines.join("\n"), "utf-8");
 }
 
-/** Переписывает тело первой подходящей записи: newBody + тег домена и (если есть) проекта. */
+/** Rewrites the body of the first matching entry: newBody + the domain tag and, if present, the project tag. */
 export function refineEntry(
   filePath: string,
   oldText: string,
@@ -72,7 +72,7 @@ export function refineEntry(
   for (let i = start; i < end; i++) {
     const m = lines[i].match(INBOX_LINE_RE);
     if (!m) continue;
-    if (m[2].includes("`#")) continue; // уже размечена
+    if (m[2].includes("`#")) continue; // already tagged
     if (m[2].includes(oldText)) {
       lines[i] = `- [ ] ${m[1]} — ${newBody}${tagSuffix}`;
       break;
@@ -82,7 +82,7 @@ export function refineEntry(
   writeFileSync(filePath, lines.join("\n"), "utf-8");
 }
 
-/** Зачёркивает запись как trash: `- [ ] ~~HH:MM — текст~~`. */
+/** Strikes an entry through as trash: `- [ ] ~~HH:MM — text~~`. */
 export function strikeTrash(filePath: string, oldText: string): void {
   const content = readFileSync(filePath, "utf-8");
   const lines = content.split("\n");

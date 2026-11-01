@@ -1,7 +1,7 @@
 export interface InboxEntry {
   time: string;
-  text: string; // текст без тегов и без маркера ❓
-  tags: string[]; // теги вида "#ai", "#stream-bot"
+  text: string; // text without tags and without the ❓ marker
+  tags: string[]; // tags like "#ai", "#stream-bot"
   needsClarify: boolean;
   raw: string;
 }
@@ -20,7 +20,7 @@ function extractTags(line: string): string[] {
   return tags;
 }
 
-/** Записи секции ## Входящее. Зачёркнутые (trash) не попадают — не матчат регулярку. */
+/** Entries of the ## Входящее section. Struck-through (trash) ones are excluded: they do not match the regex. */
 export function parseInbox(content: string): InboxEntry[] {
   const lines = content.split("\n");
   const start = lines.findIndex((l) => l.trim() === INBOX_HEADER);
@@ -29,7 +29,7 @@ export function parseInbox(content: string): InboxEntry[] {
   const entries: InboxEntry[] = [];
   for (let i = start + 1; i < lines.length; i++) {
     const trimmed = lines[i].trim();
-    if (/^##\s/.test(trimmed)) break; // следующая секция
+    if (/^##\s/.test(trimmed)) break; // next section
     const m = trimmed.match(INBOX_LINE_RE);
     if (!m) continue;
     const tags = extractTags(trimmed);
@@ -43,12 +43,12 @@ export function parseInbox(content: string): InboxEntry[] {
   return entries;
 }
 
-/** Записи без тега и без маркера уточнения — кандидаты на триаг. */
+/** Entries without a tag and without the clarify marker: triage candidates. */
 export function findUntaggedInbox(content: string): InboxEntry[] {
   return parseInbox(content).filter((e) => e.tags.length === 0 && !e.needsClarify);
 }
 
-/** Записи, ожидающие уточнения (маркер ❓). */
+/** Entries awaiting clarification (❓ marker). */
 export function findNeedsClarify(content: string): InboxEntry[] {
   return parseInbox(content).filter((e) => e.needsClarify);
 }

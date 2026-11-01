@@ -25,7 +25,7 @@ const DOMAIN_LABELS: Record<string, string> = {
   content: "Контент",
 };
 
-// Ожидаемый ответ на вопрос /clarify. Один за раз, ключ — message_id вопроса.
+// The expected reply to a /clarify question. One at a time; the key is the question's message_id.
 let currentQuestion: { messageId: number; text: string } | null = null;
 
 bot.command("start", (ctx) => {
@@ -98,7 +98,7 @@ bot.on("message:text", async (ctx) => {
   const text = ctx.message.text.trim();
   if (text.startsWith("/")) return;
 
-  // Ответ на вопрос /clarify: reply на сообщение бота с вопросом.
+  // A reply to a /clarify question: a Telegram reply to the bot's message with the question.
   const replyTo = ctx.message.reply_to_message?.message_id;
   if (currentQuestion && replyTo === currentQuestion.messageId) {
     try {
@@ -167,7 +167,7 @@ async function skipClarification(ctx: any): Promise<void> {
   ctx.reply(`Пропущено, классифицировано как ${result.type}.`);
 }
 
-/** Применяет результат классификации к записи в stream.md. */
+/** Applies a classification result to the entry in stream.md. */
 function applyClassification(originalText: string, result: Classification): void {
   if (result.type === "trash") {
     strikeTrash(inboxPath, originalText);

@@ -29,20 +29,20 @@ export const config = {
     chatId: required("TELEGRAM_CHAT_ID"),
   },
   llm: {
-    // OpenAI-совместимый шлюз. По умолчанию bothub (https://openai.bothub.chat/v1),
-    // любой другой шлюз — заменой BOTHUB_BASE_URL. Для reasoning-моделей добавлять reasoning_effort: "none".
+    // An OpenAI-compatible gateway. Defaults to bothub (https://openai.bothub.chat/v1);
+    // any other gateway via BOTHUB_BASE_URL. For reasoning models add reasoning_effort: "none".
     apiKey: required("BOTHUB_API_KEY"),
     baseUrl: process.env.BOTHUB_BASE_URL ?? "https://openai.bothub.chat/v1",
     model: process.env.MODEL ?? "claude-haiku-4.5",
   },
   wiki: {
-    // WIKI_PATH — корень git-репо заметок (с .git). Захват пишется в <WIKI_PATH>/wiki/inbox/stream.md (## Входящее).
-    // tasks.md бот не трогает — это пользовательская зона (через Obsidian Fit), иначе два писателя рождают _fit-конфликты.
+    // WIKI_PATH is the root of the notes git repo (with .git). Captures are written to <WIKI_PATH>/wiki/inbox/stream.md (## Входящее).
+    // The bot does not touch tasks.md: that is the user's zone (via Obsidian Fit), otherwise two writers create _fit conflicts.
     path: process.env.WIKI_PATH ?? resolve(__dirname, "..", ".."),
     inboxFile: "wiki/stream.md",
   },
-  // Таксономия (домены + проекты/темы) — в taxonomy.md рядом с кодом.
-  // Источник истины для категорий классификатора, подмешивается в промпт.
+  // The taxonomy (domains + projects/topics) lives in taxonomy.md next to the code.
+  // It is the source of truth for classifier categories and gets mixed into the prompt.
   taxonomyPath: process.env.TAXONOMY_PATH ?? resolve(__dirname, "..", "taxonomy.md"),
   types: ["task", "idea", "question", "reference", "trash"] as const,
 } as const;

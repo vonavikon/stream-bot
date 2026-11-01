@@ -8,12 +8,12 @@ function git(args: string[], repoPath: string): string {
   }).toString();
 }
 
-/** Блокирующая пауза без busy-wait: Atomics.wait доступен на главном потоке Node. */
+/** Blocking pause without busy-wait: Atomics.wait is available on Node's main thread. */
 function sleepMs(ms: number): void {
   Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
 }
 
-/** Сетевые git-команды (fetch/push) ретраим: GitHub изредка отдаёт HTTP 500 на fetch. */
+/** Network git commands (fetch/push) are retried: GitHub occasionally returns HTTP 500 on fetch. */
 function gitNetwork(args: string[], repoPath: string, attempts = 3): string {
   let lastErr: unknown;
   for (let i = 0; i < attempts; i++) {
