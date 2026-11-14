@@ -11,7 +11,7 @@ HOST="${HOST:-deploy@skrime-main}"
 REMOTE=/opt/stream-bot
 SERVICE=stream-bot
 KEEP_SNAPSHOTS=5
-EXCLUDE='^(tests/)$'
+EXCLUDE='^(tests/)(/.*)?$'
 
 cd "$(git rev-parse --show-toplevel)"
 FILES=$(git ls-files | grep -vE "$EXCLUDE")
