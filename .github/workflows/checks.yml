@@ -1,0 +1,31 @@
+name: checks
+# Проверочный CI по Сервис-стандарту (W4): hadolint, compose-валидация, тесты, trivy-отчёт.
+# Репо публичный: в workflow никаких адресов/секретов; compose проверяется молча (-q).
+on: [push, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Dockerfile lint (hadolint, информационно)
+        run: if [ -f Dockerfile ]; then docker run --rm -i hadolint/hadolint < Dockerfile || true; fi
+      - name: compose валидна (без печати секретов)
+        run: |
+          f=docker-compose.yml; [ -f "$f" ] || exit 0
+          if [ -f .env.example ]; then cp .env.example .env; else
+            grep -oE '\$\{[A-Za-z_]+[:-]' "$f" | sed 's/[${:-]//g' | sort -u | while read v; do echo "$v=checkdummy" >> .env; done
+          fi
+          [ -f .env ] || touch .env
+          docker compose -f "$f" config -q && echo "compose OK"
+      - name: Тесты
+        run: npm ci && npm test
+      - name: trivy скан зависимостей (отчёт)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: fs
+          scanners: vuln
+          severity: CRITICAL,HIGH
+          exit-code: 0
